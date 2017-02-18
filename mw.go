@@ -1,6 +1,7 @@
 package mw
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -9,8 +10,8 @@ func NewResponse() *Response {
 	return &Response{Headers: make(http.Header)}
 }
 
-// An Response is the current built up response for this request. Middleware
-// will typically set additional headers or add additional context in the
+// A Response is the current built up response for this request. Middleware will
+// typically set additional headers or add additional context in the
 // http.Request.
 type Response struct {
 	StatusCode int
@@ -44,7 +45,7 @@ func (htr *Response) WriteHeader(_ int) {
 //
 // It's not impossible to stream data, but this is the responsibility of the
 // function writing Response into the actual http.ResponseWriter.
-type Handler func(http.Request) (*Response, error)
+type Handler func(*http.Request) (*Response, error)
 
 // Middleware is a function which takes a Handler and returns one.
 type Middleware func(Handler) Handler
@@ -70,4 +71,10 @@ func Chain(fs ...Middleware) Middleware {
 		f = f.Then(g)
 	}
 	return f
+}
+
+// WithContextValue updates the context of the provided request such that it
+// associates key with val. The *updated http.Request is returned.
+func WithContextValue(r *http.Request, key, val interface{}) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), key, val))
 }
