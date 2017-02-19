@@ -61,8 +61,9 @@ func (cmw *contextMw) checkContext(h Handler) Handler {
 }
 
 func TestWithContextValue(t *testing.T) {
-	cmw := contextMw{1, 2}
-	handler := Chain(cmw.setContext, cmw.checkContext)(noopHandler)
+	cmw1 := contextMw{1, 2}
+	cmw2 := contextMw{2, 3}
+	handler := Chain(cmw1.setContext, cmw1.checkContext, cmw2.setContext, cmw1.checkContext, cmw2.checkContext)(noopHandler)
 	_, err := handler(&http.Request{})
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)

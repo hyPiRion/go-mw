@@ -19,8 +19,7 @@ type Response struct {
 	Headers    http.Header
 }
 
-// Header returns the header map of a Response. (This is, in fact, the actual
-// header in the http.ResponseWriter.)
+// Header returns the header map of a Response.
 func (htr *Response) Header() http.Header {
 	return htr.Headers
 }
@@ -77,4 +76,14 @@ func Chain(fs ...Middleware) Middleware {
 // associates key with val. The *updated http.Request is returned.
 func WithContextValue(r *http.Request, key, val interface{}) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), key, val))
+}
+
+// InjectHeader injects the Response headers into the ResponseWriter headers,
+// overwriting existing keys if they exist. Does not remove existing header
+// fields which doesn't overlap with the values in the respone header.
+func InjectHeader(w http.ResponseWriter, resp *Response) {
+	to := w.Header()
+	for k, v := range resp.Headers {
+		to[k] = v
+	}
 }
