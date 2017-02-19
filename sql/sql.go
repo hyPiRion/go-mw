@@ -38,7 +38,7 @@ func WrapDB(params WrapParams) mw.Middleware {
 	}
 }
 
-func (wp WrapParams) handle(req *http.Request) (resp *mw.Response, err error) {
+func (wp WrapParams) handle(resp *mw.Response, req *http.Request) (err error) {
 	val := contextValue{db: wp.DB, dbopts: wp.DBOpts}
 	paniced := true
 	req = mw.WithContextValue(req, contextKey(wp.Index), &val)
@@ -53,7 +53,7 @@ func (wp WrapParams) handle(req *http.Request) (resp *mw.Response, err error) {
 			}
 		}
 	}()
-	resp, err = wp.wrapped(req)
+	err = wp.wrapped(resp, req)
 	paniced = false
 	return
 }

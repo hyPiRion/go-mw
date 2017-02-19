@@ -24,8 +24,8 @@ func (e *ErrMissingContextValue) Error() string {
 }
 
 // NewResponse returns an empty Response to be used by middleware and handlers.
-func NewResponse() *Response {
-	return &Response{Headers: make(http.Header)}
+func NewResponse(w http.ResponseWriter) *Response {
+	return &Response{Headers: w.Header()}
 }
 
 // A Response is the current built up response for this request. Middleware will
@@ -56,13 +56,13 @@ func (htr *Response) WriteHeader(_ int) {
 	panic("github.com/hypirion/go-mw.Response does not implement WriteHeader")
 }
 
-// Handler is a function which takes in a request, and returns a response. Note
-// that, in contrast to http.ResponseWriter, this function can NOT stream data
-// to the user.
+// Handler is a function which takes in a respone and a request. Note that, in
+// contrast to http.ResponseWriter, this handler can NOT stream data to the
+// user.
 //
 // It's not impossible to stream data, but this is the responsibility of the
 // function writing Response into the actual http.ResponseWriter.
-type Handler func(*http.Request) (*Response, error)
+type Handler func(*Response, *http.Request) error
 
 // Middleware is a function which takes a Handler and returns one.
 type Middleware func(Handler) Handler
@@ -91,17 +91,7 @@ func Chain(fs ...Middleware) Middleware {
 }
 
 // WithContextValue updates the context of the provided request such that it
-// associates key with val. The *updated http.Request is returned.
+// associates key with val. The updated *http.Request is returned.
 func WithContextValue(r *http.Request, key, val interface{}) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), key, val))
-}
-
-// InjectHeader injects the Response headers into the ResponseWriter headers,
-// overwriting existing keys if they exist. Does not remove existing header
-// fields which doesn't overlap with the values in the respone header.
-func InjectHeader(w http.ResponseWriter, resp *Response) {
-	to := w.Header()
-	for k, v := range resp.Headers {
-		to[k] = v
-	}
 }
