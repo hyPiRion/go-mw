@@ -2,8 +2,26 @@ package mw
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
+
+// IsErrMissingContextValue returns true if the error is because of a missing
+// context value
+func IsErrMissingContextValue(err error) bool {
+	_, ok := err.(*ErrMissingContextValue)
+	return ok
+}
+
+// ErrMissingContextValue is returned from functions which extracts data from
+// contexts.
+type ErrMissingContextValue struct {
+	What string
+}
+
+func (e *ErrMissingContextValue) Error() string {
+	return fmt.Sprintf("Could not find value %s in context", e.What)
+}
 
 // NewResponse returns an empty Response to be used by middleware and handlers.
 func NewResponse() *Response {
