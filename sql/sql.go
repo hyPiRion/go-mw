@@ -5,6 +5,7 @@ package mwsql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/hypirion/go-mw"
@@ -28,9 +29,9 @@ type WrapParams struct {
 	wrapped mw.Handler
 }
 
-// WrapSQL returns a middleware which provides the context with a transaction
+// WrapDB returns a middleware which provides the context with a transaction
 // and a database.
-func WrapSQL(params WrapParams) mw.Middleware {
+func WrapDB(params WrapParams) mw.Middleware {
 	return func(h mw.Handler) mw.Handler {
 		params.wrapped = h // pass by value makes this ok
 		return params.handle
@@ -72,39 +73,13 @@ type contextValue struct {
 // context and modify it if necessary (Its parent context should always be the
 // original ctx).
 type Tx struct {
-	Ctx       context.Context
-	Tx        *sql.Tx
-	initError error
-}
-
-type unusableResult struct {
-	err error
-}
-
-func (ur unusableResult) LastInsertId() (int64, error) {
-	return 0, ur.err
-}
-
-func (ur unusableResult) RowsAffected() (int64, error) {
-	return 0, ur.err
-}
-
-func (ur unusableResult) Scan(dest ...interface{}) error {
-	return ur.err
-}
-
-// InitErr returns the initialisation error of this transaction, if there are
-// any.
-func (tx *Tx) InitErr() error {
-	return tx.initError
+	Ctx context.Context
+	Tx  *sql.Tx
 }
 
 // Exec executes a query that doesn't return rows. For example: an INSERT and
 // UPDATE.
 func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	if tx.initError != nil {
-		return unusableResult{tx.initError}, tx.initError
-	}
 	return tx.Tx.ExecContext(tx.Ctx, query, args...)
 }
 
@@ -115,75 +90,58 @@ func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 //
 // To use an existing prepared statement on this transaction, see Tx.Stmt.
 func (tx *Tx) Prepare(query string) (*sql.Stmt, error) {
-	if tx.initError != nil {
-		return nil, tx.initError
-	}
 	return tx.Tx.PrepareContext(tx.Ctx, query)
 }
 
 // Query executes a query that returns rows, typically a SELECT.
 func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	if tx.initError != nil {
-		return nil, tx.initError
-	}
 	return tx.Tx.QueryContext(tx.Ctx, query, args...)
-}
-
-// Row is like *sql.Row, but is instead an interface
-type Row interface {
-	Scan(dest ...interface{}) error
 }
 
 // QueryRow executes a query that is expected to return at most one row.
 // QueryRow always returns a non-nil value. Errors are deferred until Row's Scan
 // method is called.
-func (tx *Tx) QueryRow(query string, args ...interface{}) Row {
-	if tx.initError != nil {
-		return &unusableResult{tx.initError}
-	}
+func (tx *Tx) QueryRow(query string, args ...interface{}) *sql.Row {
 	return tx.Tx.QueryRowContext(tx.Ctx, query, args...)
 }
 
 // Stmt returns a transaction-specific prepared statement from an existing
 // statement. This will only error if the transaction has trouble with
 // initialisation.
-func (tx *Tx) Stmt(stmt *sql.Stmt) (*sql.Stmt, error) {
-	if tx.initError != nil {
-		return nil, tx.initError
-	}
-	return tx.Tx.StmtContext(tx.Ctx, stmt), nil
+func (tx *Tx) Stmt(stmt *sql.Stmt) *sql.Stmt {
+	return tx.Tx.StmtContext(tx.Ctx, stmt)
 }
 
 // GetRawDB returns the raw database from the provided context, or nil if it
 // does not exist. Prefer GetTx when you can.
-func GetRawDB(ctx context.Context, index int) *sql.DB {
+func GetRawDB(ctx context.Context, index int) (*sql.DB, error) {
 	val := ctx.Value(contextKey(index))
 	if val == nil {
-		return nil
+		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sql.DB[%d]", index)}
 	}
-	return val.(*contextValue).db
+	return val.(*contextValue).db, nil
 }
 
-// GetTx returns a transaction for the provided context, or nil if the context
-// is not attached to any database. If the transaction initialisation failed,
-// then all database calls will fail. Successive calls will return the same
-// transaction, unless the transaction initialisation failed.
-func GetTx(ctx context.Context) *Tx {
+// GetTx returns a transaction for the provided context. Successive calls will
+// return the same transaction, unless the transaction initialisation failed.
+func GetTx(ctx context.Context) (*Tx, error) {
 	return GetIndexedTx(ctx, 0)
 }
 
 // GetIndexedTx works like GetTx, except that it provides the option to specify
 // which database to get a transaction from.
-func GetIndexedTx(ctx context.Context, index int) *Tx {
+func GetIndexedTx(ctx context.Context, index int) (*Tx, error) {
 	val := ctx.Value(contextKey(index))
 	if val == nil {
-		return nil
+		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sql.Tx[%d]", index)}
 	}
 	ctxval := val.(*contextValue)
 	if ctxval.tx != nil {
-		return ctxval.tx
+		return ctxval.tx, nil
 	}
 	tx, err := ctxval.db.BeginTx(ctx, ctxval.dbopts)
-	ctxval.tx = &Tx{ctx, tx, err}
-	return ctxval.tx
+	if err == nil {
+		ctxval.tx = &Tx{ctx, tx}
+	}
+	return ctxval.tx, err
 }
