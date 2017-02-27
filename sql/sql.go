@@ -29,9 +29,9 @@ type WrapParams struct {
 	wrapped mw.Handler
 }
 
-// WrapDB returns a middleware which provides the context with a transaction
+// WithDB returns a middleware which provides the context with a transaction
 // and a database.
-func WrapDB(params WrapParams) mw.Middleware {
+func WithDB(params WrapParams) mw.Middleware {
 	return func(h mw.Handler) mw.Handler {
 		params.wrapped = h // pass by value makes this ok
 		return params.handle
