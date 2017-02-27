@@ -2,9 +2,19 @@ package mw
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 )
+
+// ErrHandled is the error returned when an error has been translated into a
+// response.
+var ErrHandled = errors.New("Error is handled and is inside the response")
+
+// IsErrUnhandled returns true if the error is not nill and is not ErrHandled.
+func IsErrUnhandled(err error) bool {
+	return err != nil && err != ErrHandled
+}
 
 // IsErrMissingContextValue returns true if the error is because of a missing
 // context value
