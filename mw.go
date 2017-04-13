@@ -35,7 +35,10 @@ func (e *ErrMissingContextValue) Error() string {
 
 // NewResponse returns an empty Response to be used by middleware and handlers.
 func NewResponse(w http.ResponseWriter) *Response {
-	return &Response{Headers: w.Header()}
+	return &Response{
+		Headers:    w.Header(),
+		StatusCode: 200,
+	}
 }
 
 // A Response is the current built up response for this request. Middleware will
