@@ -38,6 +38,7 @@ func NewResponse(w http.ResponseWriter) *Response {
 	return &Response{
 		Headers:    w.Header(),
 		StatusCode: 200,
+		Writer:     w,
 	}
 }
 
@@ -48,6 +49,8 @@ type Response struct {
 	StatusCode int
 	Body       interface{}
 	Headers    http.Header
+	// Do not use Writer unless you really know what you're doing.
+	Writer http.ResponseWriter
 }
 
 // Header returns the header map of a Response.
