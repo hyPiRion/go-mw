@@ -49,7 +49,10 @@ func (wp WrapParams) handle(resp *mw.Response, req *http.Request) (err error) {
 				val.tx.Rollback()
 				// TODO: Support error message handling in case rollback fails (?)
 			} else {
-				err = val.tx.Commit()
+				verr := val.tx.Commit()
+				if verr != sql.ErrTxDone {
+					err = verr
+				}
 			}
 		}
 	}()

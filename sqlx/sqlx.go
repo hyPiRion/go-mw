@@ -47,7 +47,10 @@ func (wp WrapParams) handle(resp *mw.Response, req *http.Request) (err error) {
 				val.tx.Rollback()
 				// TODO: Support error message handling in case rollback fails (?)
 			} else {
-				err = val.tx.Commit()
+				verr := val.tx.Commit()
+				if verr != sql.ErrTxDone {
+					err = verr
+				}
 			}
 		}
 	}()
@@ -70,7 +73,7 @@ type contextValue struct {
 func GetRawDB(ctx context.Context, index int) (*sqlx.DB, error) {
 	val := ctx.Value(contextKey(index))
 	if val == nil {
-		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sql.DB[%d]", index)}
+		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sqlx.DB[%d]", index)}
 	}
 	return val.(*contextValue).db, nil
 }
@@ -86,7 +89,7 @@ func GetTx(ctx context.Context) (*sqlx.Tx, error) {
 func GetIndexedTx(ctx context.Context, index int) (*sqlx.Tx, error) {
 	val := ctx.Value(contextKey(index))
 	if val == nil {
-		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sql.Tx[%d]", index)}
+		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sqlx.Tx[%d]", index)}
 	}
 	ctxval := val.(*contextValue)
 	if ctxval.tx != nil {
