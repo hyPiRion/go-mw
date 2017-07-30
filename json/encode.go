@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/hypirion/go-mw"
+	"github.com/hyPiRion/go-mw"
 )
 
 type handlerError struct {

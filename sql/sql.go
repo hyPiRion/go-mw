@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hypirion/go-mw"
+	"github.com/hyPiRion/go-mw"
 )
 
 // TODO: Circuit breaking

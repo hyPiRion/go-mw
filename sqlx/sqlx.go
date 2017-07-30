@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hypirion/go-mw"
+	"github.com/hyPiRion/go-mw"
 
 	"github.com/jmoiron/sqlx"
 )

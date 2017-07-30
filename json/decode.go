@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/hypirion/go-mw"
+	"github.com/hyPiRion/go-mw"
 )
 
 // ErrUnsupportedMediaType is returned from a JSON decoder if the Content-Type
