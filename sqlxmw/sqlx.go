@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package mwsql
-
-// ^ uh, not to be confused with mysql
+package sqlxmw
 
 import (
 	"context"
@@ -13,15 +11,14 @@ import (
 	"net/http"
 
 	"github.com/hyPiRion/go-mw"
-)
 
-// TODO: Circuit breaking
-// Also TODO: sqlx when it has ported over context
+	"github.com/jmoiron/sqlx"
+)
 
 // WrapParams is the set of input parameters
 type WrapParams struct {
 	// DB is the database to connect to. Has to be nonnil.
-	DB *sql.DB
+	DB *sqlx.DB
 	// Options when starting a transactional
 	DBOpts *sql.TxOptions
 	// Index is the index of this database. This argument is optional and is not
@@ -37,8 +34,9 @@ type WrapParams struct {
 // and a database.
 func WithDB(params WrapParams) mw.Middleware {
 	return func(h mw.Handler) mw.Handler {
-		params.wrapped = h // pass by value makes this ok
-		return params.handle
+		p := params
+		p.wrapped = h // pass by value makes this ok
+		return p.handle
 	}
 }
 
@@ -69,39 +67,39 @@ func (wp WrapParams) handle(resp *mw.Response, req *http.Request) (err error) {
 type contextKey int
 
 type contextValue struct {
-	db     *sql.DB
+	db     *sqlx.DB
 	dbopts *sql.TxOptions
-	tx     *sql.Tx
+	tx     *sqlx.Tx
 }
 
 // GetRawDB returns the raw database from the provided context, or nil if it
 // does not exist. Prefer GetTx when you can.
-func GetRawDB(ctx context.Context, index int) (*sql.DB, error) {
+func GetRawDB(ctx context.Context, index int) (*sqlx.DB, error) {
 	val := ctx.Value(contextKey(index))
 	if val == nil {
-		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sql.DB[%d]", index)}
+		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sqlx.DB[%d]", index)}
 	}
 	return val.(*contextValue).db, nil
 }
 
 // GetTx returns a transaction for the provided context. Successive calls will
 // return the same transaction, unless the transaction initialisation failed.
-func GetTx(ctx context.Context) (*sql.Tx, error) {
+func GetTx(ctx context.Context) (*sqlx.Tx, error) {
 	return GetIndexedTx(ctx, 0)
 }
 
 // GetIndexedTx works like GetTx, except that it provides the option to specify
 // which database to get a transaction from.
-func GetIndexedTx(ctx context.Context, index int) (*sql.Tx, error) {
+func GetIndexedTx(ctx context.Context, index int) (*sqlx.Tx, error) {
 	val := ctx.Value(contextKey(index))
 	if val == nil {
-		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sql.Tx[%d]", index)}
+		return nil, &mw.ErrMissingContextValue{fmt.Sprintf("go-mw/sqlx.Tx[%d]", index)}
 	}
 	ctxval := val.(*contextValue)
 	if ctxval.tx != nil {
 		return ctxval.tx, nil
 	}
-	tx, err := ctxval.db.BeginTx(ctx, ctxval.dbopts)
+	tx, err := ctxval.db.BeginTxx(ctx, ctxval.dbopts)
 	if err == nil {
 		ctxval.tx = tx
 	}
