@@ -8,8 +8,6 @@ import (
 	"net/http"
 )
 
-type responseWriterKey int
-
 type handlerAdapter struct {
 	sub Handler
 }

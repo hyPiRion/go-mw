@@ -35,13 +35,13 @@ func TestChaining1(t *testing.T) {
 	r := &Response{Headers: make(http.Header)}
 	handler(r, &http.Request{})
 	if r.Body != set1.Body {
-		t.Error("set1 earlier in chain than set2, yet body does not contain 1: Contains %#v", r.Body)
+		t.Errorf("set1 earlier in chain than set2, yet body does not contain 1: Contains %#v", r.Body)
 	}
 	handler = Middleware(set2.setBody).Then(set1.setBody)(noopHandler)
 	r = &Response{Headers: make(http.Header)}
 	handler(r, &http.Request{})
 	if r.Body != set2.Body {
-		t.Error("set2 earlier in chain than set1, yet body does not contain 2: Contains %#v", r.Body)
+		t.Errorf("set2 earlier in chain than set1, yet body does not contain 2: Contains %#v", r.Body)
 	}
 }
 

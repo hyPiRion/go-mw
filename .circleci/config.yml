@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang
+
+    working_directory: /go/src/github.com/hyPiRion/go-mw
+    steps:
+      - checkout
+      - run: .circleci/setup.sh
+      - run: .circleci/gofmt.sh
+      - run: go vet ./...
+      - run: golint ./...
+      - run: megacheck ./...
+      - run: go test -v ./...
