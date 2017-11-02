@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 
 	"github.com/hypirion/go-mw"
 )
@@ -46,7 +47,7 @@ func NewDecoder(fn interface{}) mw.Handler {
 	if inputType.Kind() != reflect.Ptr || inputType.Elem().Kind() != reflect.Struct {
 		panic("Third function argument must be a pointer to a struct")
 	}
-	return (&decoder{inputType, rfn}).handler
+	return (&decoder{inputType.Elem(), rfn}).handler
 }
 
 type decoder struct {
@@ -55,7 +56,7 @@ type decoder struct {
 }
 
 func (dec *decoder) handler(resp *mw.Response, r *http.Request) error {
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 		resp.Body = ErrUnsupportedMediaType
 		resp.StatusCode = http.StatusUnsupportedMediaType
 		return mw.ErrHandled

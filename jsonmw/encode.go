@@ -7,6 +7,7 @@ package jsonmw
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/hypirion/go-mw"
 )
@@ -24,7 +25,7 @@ type encoder struct {
 }
 
 func (e *encoder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Accept") != "application/json" {
+	if !strings.Contains(r.Header.Get("Accept"), "application/json") {
 		http.Error(w, http.StatusText(http.StatusNotAcceptable), http.StatusNotAcceptable)
 		return
 	}
