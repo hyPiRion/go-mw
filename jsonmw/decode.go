@@ -6,7 +6,6 @@ package jsonmw
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -17,7 +16,7 @@ import (
 
 // ErrUnsupportedMediaType is returned from a JSON decoder if the Content-Type
 // provided is not equal to "application/json"
-var ErrUnsupportedMediaType error = handlerError{errors.New(`Unsupported media type: Expected "application/json"`)}
+var ErrUnsupportedMediaType error = handlerError{`Unsupported media type: Expected "application/json"`}
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 var responseType = reflect.TypeOf((*mw.Response)(nil))
@@ -65,7 +64,7 @@ func (dec *decoder) handler(resp *mw.Response, r *http.Request) error {
 	input := rinput.Interface()
 	err := json.NewDecoder(r.Body).Decode(input)
 	if err != nil {
-		resp.Body = handlerError{errors.New("Malformed request body: " + err.Error())}
+		resp.Body = handlerError{"Malformed request body: " + err.Error()}
 		resp.StatusCode = http.StatusBadRequest
 		return mw.ErrHandled
 	}

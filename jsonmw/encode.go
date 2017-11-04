@@ -13,11 +13,11 @@ import (
 )
 
 type handlerError struct {
-	Err error `json:"error"`
+	Err string `json:"error"`
 }
 
 func (he handlerError) Error() string {
-	return he.Err.Error()
+	return he.Err
 }
 
 type encoder struct {
@@ -35,7 +35,7 @@ func (e *encoder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Unhandled errors? People should really add an error transformer into a
 	// proper response. Perhaps panic is more appropriate.
 	if mw.IsErrUnhandled(err) {
-		resp.Body = handlerError{err}
+		resp.Body = handlerError{err.Error()}
 		resp.StatusCode = http.StatusInternalServerError
 	}
 	w.WriteHeader(resp.StatusCode)
