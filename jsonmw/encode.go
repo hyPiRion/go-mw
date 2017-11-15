@@ -25,7 +25,10 @@ type encoder struct {
 }
 
 func (e *encoder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Accept"), "application/json") {
+	// TODO: This is not a viable solution. Need to find an accept header library
+	// out there.
+	if !strings.Contains(r.Header.Get("Accept"), "application/json") &&
+		!strings.Contains(r.Header.Get("Accept"), "*/*") {
 		http.Error(w, http.StatusText(http.StatusNotAcceptable), http.StatusNotAcceptable)
 		return
 	}
