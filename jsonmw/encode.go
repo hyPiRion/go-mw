@@ -39,7 +39,10 @@ func (e *encoder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// proper response. Perhaps panic is more appropriate.
 	if mw.IsErrUnhandled(err) {
 		resp.Body = handlerError{err.Error()}
-		resp.StatusCode = http.StatusInternalServerError
+		// Have the user actually changed the error code?
+		if resp.StatusCode/100 == 2 {
+			resp.StatusCode = http.StatusInternalServerError
+		}
 	}
 	w.WriteHeader(resp.StatusCode)
 	json.NewEncoder(w).Encode(resp.Body)
